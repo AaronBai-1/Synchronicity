@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Data & models — never commit video, weights, or extracted data.
+# Exception: golden-set label JSONs are derived data (our own labor, uncopyrightable
+# facts) and MUST be committed — they are the eval ground truth.
+data/*
+!data/golden/
+data/golden/*
+!data/golden/*.json
+weights/
+*.mp4
+*.mkv
+*.webm
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Vendored third-party code (fetched by scripts/, not committed)
+pipeline/vendor/
+
+# Reference copy of the prior BadmintonAnalyzer project — contains AGPL model
+# weights and broadcast footage; consult it, never commit it
+BadmintonAnalyzer-main/
+
+# Env & editor
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
+
+# Modal
+.modal.toml

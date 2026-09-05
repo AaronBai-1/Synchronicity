@@ -1,0 +1,18 @@
+Synchronicity — Badminton Match Analytics
+
+This product includes software adapted from BadmintonAnalyzer
+("Synchronicity Badminton Analytics"), Copyright Dhyey Mavani,
+licensed under the Apache License, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0).
+
+Adapted portions:
+  - pipeline/src/synchro_pipeline/analytics/ — analytics/tactical suite
+    ported and reworked from BadmintonAnalyzer's analytics, movement
+    analytics, and tactical modules.
+  - pipeline/src/synchro_pipeline/perception/hits_baseline.py —
+    concept-level inspiration (trajectory-only hit heuristics) from
+    BadmintonAnalyzer's CV shot-detection module; reimplemented.
+
+Each file containing adapted logic carries an attribution header.
+No model weights, media assets, or GPL/AGPL-licensed components from
+BadmintonAnalyzer are included in this repository.

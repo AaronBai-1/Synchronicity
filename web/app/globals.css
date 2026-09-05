@@ -1,0 +1,179 @@
+/*
+ * Synchronicity dashboard - minimal dark-first styling for the Phase 0 scaffold.
+ * No Tailwind / UI kit yet (plan says Tailwind/shadcn later; toolchain unverifiable
+ * on this machine, so plain CSS keeps the scaffold honest). Dark is the default;
+ * light mode via prefers-color-scheme.
+ */
+
+:root {
+  --bg: #0f1115;
+  --bg-raised: #171a21;
+  --border: #2a2f3a;
+  --text: #e6e8ee;
+  --text-dim: #9aa3b2;
+  --accent: #4f8ef7;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --court-surface: #1e5f46;
+  --court-line: #f2f5f7;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f9;
+    --bg-raised: #ffffff;
+    --border: #d7dbe2;
+    --text: #1a1d23;
+    --text-dim: #5c6470;
+    --accent: #2563eb;
+    --court-surface: #2c7a5b;
+    --court-line: #ffffff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.site-header .brand {
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.site-header .tag {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.card + .card {
+  margin-top: 0.75rem;
+}
+
+.notice {
+  border-left: 3px solid var(--warn);
+}
+
+.match-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+table.rally-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+table.rally-table th,
+table.rally-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+table.rally-table th {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.badge.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.badge.warn {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.badge.bad {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.score-line {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+.court-wrap {
+  max-width: 320px;
+}
+
+.court-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
