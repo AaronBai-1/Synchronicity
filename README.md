@@ -42,6 +42,7 @@ pipeline/scripts/vendor_tracknetv3.sh   # fetch TrackNetV3 (MIT) into pipeline/v
 - [x] Golden-set labeling tooling (court corners, rally boundaries, hit frames)
 - [x] Analytics/tactical suite ported from predecessor (Apache-2.0, see NOTICE)
 - [x] S5 trajectory-only hit baseline + benchmark
+- [x] Labeling accelerators: ShuttleSet aligner, audio-onset hit proposals, S0 mezzanine CLI
 - [ ] Golden set labeled (5 matches across broadcasters) — spec: [docs/golden-set.md](docs/golden-set.md), how-to: [docs/golden-file-guide.md](docs/golden-file-guide.md)
 - [ ] TrackNetV3 pretrained benchmark on golden set + target GPU
 - [ ] License outreach sent (drafts in [docs/legal/license-outreach-emails.md](docs/legal/license-outreach-emails.md))

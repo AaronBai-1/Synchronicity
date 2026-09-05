@@ -1,8 +1,9 @@
 # synchro_pipeline
 
-Badminton analytics CV/ML pipeline: stages S0–S7, schema contracts, and the golden-set
-evaluation harness. See `docs/plan.md` at the repo root for the full architecture; this
-README covers day-to-day setup and the Phase 0 golden-set workflow.
+Badminton analytics CV/ML pipeline: stages S0–S7, schema contracts, the golden-set
+evaluation harness, and the analytics/tactical suite. See `docs/plan.md` at the repo
+root for the full architecture; this README covers day-to-day setup and the Phase 0
+golden-set workflow.
 
 ## Setup
 
@@ -66,27 +67,64 @@ carries hand-labelled shuttle points, it also contains `shuttle_detection_f1` at
 (plan target metric). Rallies without labels report `metrics: null` — never silently
 folded into aggregates (plan: honest abstention).
 
+## Hit-detection baseline benchmark
+
+`perception/hits_baseline.py` is the plan's trajectory-only S5 baseline (risk #1
+week-2 prototype): direction/speed-change events over a shuttle track, per-rally
+adaptive thresholds, honest `saliency` (not a probability). Score it against golden
+hit labels — `--tracker golden` replays the golden file's own shuttle points, so the
+baseline logic is measurable before TrackNetV3 is even vendored:
+
+```sh
+uv run python -m synchro_pipeline.eval.benchmark_hits \
+    --video match.mp4 --golden golden/match.json --tracker golden --out hits.json
+```
+
+## Analytics / tactical suite
+
+`synchro_pipeline/analytics/` (adapted from BadmintonAnalyzer, Apache-2.0 — see
+repo-root NOTICE): `adapter.py` turns `ShotRecord`/`RallyRecord` lists into DataFrames
+with QA gating and drop reporting; `descriptive.py` (shot mix, serve patterns,
+terminal conversion, pressure/momentum, head-to-head, trends), `tactical.py` (Markov
+transition tables, n-gram pattern mining), `scouting.py` (template scouting reports).
+Every aggregate row carries `n` + `low_sample`; unknowns become explicit buckets,
+never guesses.
+
 ## Golden-set labeling workflow (Phase 0)
 
 One JSON per match (`GoldenMatch` in `synchro_pipeline/eval/golden.py`): rally
 boundaries, frame-exact hits, 16 court keypoints per labelled frame, score timeline,
 optional per-rally shuttle tracks. Files are hand-editable; the loader rejects typos and
-contradictions with messages naming the offending field/frames.
+contradictions with messages naming the offending field/frames. The video's sha256 is
+stamped/verified automatically by the tools and benchmark CLIs. Step-by-step:
+`docs/golden-file-guide.md`.
 
-1. **Rally boundaries + hit frames** (S1/S5 ground truth — plan risk #1 says hit labels
+0. **Mezzanine** — all frames index the canonical 720p30 CFR encode:
+
+   ```sh
+   uv run python -m synchro_pipeline.stages.s0_ingest source.webm mezzanine.mp4
+   ```
+
+1. **ShuttleSet shortcut** (when the match is in ShuttleSet): convert their per-stroke
+   frame labels into golden hits from 2–4 manual anchors (`tools/align_shuttleset.py`;
+   workflow in `docs/golden-set.md` §5.1), then refine boundaries + spot-check.
+
+2. **Rally boundaries + hit frames** (S1/S5 ground truth — plan risk #1 says hit labels
    come first):
 
    ```sh
    uv run python pipeline/tools/label_rallies.py \
-       --video match.mp4 --golden golden/match.json \
-       --match-id 2024_ao_final --video-uri r2://matches/2024_ao_final.mp4
+       --video mezzanine.mp4 --golden golden/match.json \
+       --match-id 2024_ao_final --video-uri mezzanine.mp4 \
+       --audio source.webm     # audio-onset proposals: o/O jump between candidates
    ```
 
    Keyboard-driven scrubber: `space` play/pause, `,`/`.` step, `[`/`]`/`{`/`}` jump,
-   `r`/`e` rally start/end, `n`/`f` near/far hit, `s` save, `q` quit. Full key map in the
-   module docstring.
+   `o`/`O` next/prev audio-proposed onset, `r`/`e` rally start/end, `n`/`f` near/far
+   hit, `s` save, `q` quit. Full key map in the module docstring. Onset proposals are
+   jump targets only — nothing reaches the golden JSON without a keypress.
 
-2. **Court corners** (S2 ground truth, PCK@5px) — pick a handful of frames per camera
+3. **Court corners** (S2 ground truth, PCK@5px) — pick a handful of frames per camera
    setup:
 
    ```sh
@@ -98,8 +136,9 @@ contradictions with messages naming the offending field/frames.
    fits the homography, projects all 16 canonical keypoints back for verification,
    arrow keys nudge, `x` nulls an occluded point, `s` saves.
 
-3. **Benchmark** against the file as shown above; wire the report numbers into CI
-   (plan: "every model change answers 'did the numbers move'").
+4. **Benchmark** against the file as shown above (`benchmark_shuttle`,
+   `benchmark_hits`); wire the report numbers into CI (plan: "every model change
+   answers 'did the numbers move'").
 
 All labeling *logic* is in `synchro_pipeline/eval/labeling.py` (pure, unit-tested); the
 tools are thin OpenCV event loops.
@@ -126,6 +165,7 @@ never copy code.
 | BST | S6 shot classification | official repo | retrain via our perception stack |
 | CoachAI-Projects | S7 analytics models | MIT | ok |
 | ShuttleSet / BFMD | training labels | dataset terms | author outreach week 1 (plan) |
+| BadmintonAnalyzer | analytics suite origin | Apache-2.0 | code adapted (see NOTICE); its bundled YOLO weights are AGPL — **never copy them** |
 
 Fallback if any asset turns out research-only: all architectures above are cleanly
 licensed — retrain on our own labels (plan estimates 4–6 person-weeks, not a redesign).

@@ -46,10 +46,12 @@ discipline (`MS`/`WS`).
 ## 2. Canonical timebase
 
 All frame numbers refer to the **S0 mezzanine** (720p30 CFR — plan stage S0: "frame
-index is the time authority"), not the original download. Run the match through S0
-ingest first and label on its output. If S0 is not runnable yet, label on a local
-constant-frame-rate 30 fps re-encode and record the exact ffmpeg command with the
-labels so the mapping is reproducible.
+index is the time authority"), not the original download. Make it with the pipeline's
+own encode path and label on its output:
+
+```sh
+uv run python -m synchro_pipeline.stages.s0_ingest <source> data/mezzanine/<match_id>.mp4
+```
 
 ## 3. What to label per match
 
@@ -99,8 +101,9 @@ labels so the mapping is reproducible.
 - At each rally end: the score shown by the broadcast scorebug **after** the rally
   (`a`, `b` in a fixed player mapping you choose once per match and keep for all
   games), plus the game number.
-- Record the first server of the match and which physical side player A starts on —
-  the scoring state machine needs both to derive serve courts and the side-switch
+- Record the first server of the match and which physical side player A starts on
+  (golden JSON fields `first_server`, `a_on_near_side_at_start`, plus `discipline`) —
+  the scoring state machine needs these to derive serve courts and the side-switch
   schedule.
 - If the scorebug is absent/wrong at a rally end (graphics glitch), infer from
   context and flag `score_inferred`.
