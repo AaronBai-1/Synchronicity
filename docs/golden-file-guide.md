@@ -77,7 +77,10 @@ frame.
 
 ## 4. What goes in the file, precisely
 
-Annotated example (field-by-field authority: `GoldenMatch` in `eval/golden.py`):
+A complete, schema-validated example lives at
+[docs/examples/sample-golden.json](examples/sample-golden.json) (kept honest by
+`pipeline/tests/test_examples.py`). Annotated walkthrough (field-by-field authority:
+`GoldenMatch` in `eval/golden.py`):
 
 ```jsonc
 {

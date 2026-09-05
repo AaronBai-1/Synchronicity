@@ -75,6 +75,38 @@ class IngestInfo(BaseModel):
 # --- ffprobe / ffmpeg plumbing -----------------------------------------------------
 
 
+def mezzanine_transcode_cmd(source: Path, out: Path) -> list[str]:
+    """The canonical mezzanine ffmpeg invocation — the single source of truth.
+
+    Used by both the pipeline stage and the `python -m` CLI so hand-made mezzanines
+    (docs/golden-file-guide.md §2) can never drift from what the pipeline produces.
+    """
+    return [
+        "ffmpeg",
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        str(source),
+        "-vf",
+        f"scale=-2:{MEZZANINE_HEIGHT},setsar=1",
+        "-r",
+        str(MEZZANINE_FPS),
+        "-fps_mode",
+        "cfr",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        "-pix_fmt",
+        "yuv420p",
+        "-an",
+        str(out),
+    ]
+
+
 def _run(cmd: list[str], what: str) -> subprocess.CompletedProcess[str]:
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
@@ -170,33 +202,7 @@ class S0Ingest(Stage):
 
         # -y + a fixed filename inside the (freshly wiped) stage dir keeps this idempotent.
         mezzanine = ctx.artifacts.prepare_file(self, "mezzanine.mp4")
-        _run(
-            [
-                "ffmpeg",
-                "-y",
-                "-v",
-                "error",
-                "-i",
-                str(source),
-                "-vf",
-                f"scale=-2:{MEZZANINE_HEIGHT},setsar=1",
-                "-r",
-                str(MEZZANINE_FPS),
-                "-fps_mode",
-                "cfr",
-                "-c:v",
-                "libx264",
-                "-preset",
-                "veryfast",
-                "-crf",
-                "20",
-                "-pix_fmt",
-                "yuv420p",
-                "-an",
-                str(mezzanine),
-            ],
-            what="mezzanine transcode",
-        )
+        _run(mezzanine_transcode_cmd(source, mezzanine), what="mezzanine transcode")
 
         audio_stream = _stream_of(probe, "audio")
         wav = ctx.artifacts.prepare_file(self, "audio.wav")
@@ -262,3 +268,41 @@ class S0Ingest(Stage):
         ctx.artifacts.save_model(self, INGEST_INFO, info)
         ctx.artifacts.register_file(self, MEZZANINE_VIDEO, mezzanine)
         ctx.artifacts.register_file(self, MEZZANINE_AUDIO, wav)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`python -m synchro_pipeline.stages.s0_ingest <source> <out.mp4>` — make a
+    mezzanine outside the pipeline (golden-set prep) with the exact stage encode."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m synchro_pipeline.stages.s0_ingest",
+        description="Transcode a source video to the canonical 720p30 CFR mezzanine "
+        "using the pipeline's own ffmpeg parameters (drift-proof by construction).",
+    )
+    parser.add_argument("source", type=Path, help="source video (mp4/webm/mkv)")
+    parser.add_argument("out", type=Path, help="output mezzanine path (.mp4)")
+    args = parser.parse_args(argv)
+
+    probe = ffprobe(args.source)
+    if _stream_of(probe, "video") is None:
+        print(f"error: {args.source}: no video stream found")
+        return 2
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    _run(mezzanine_transcode_cmd(args.source, args.out), what="mezzanine transcode")
+
+    out_probe = ffprobe(args.out)
+    stream = _stream_of(out_probe, "video")
+    fps = _fps_of(stream) if stream else None
+    duration = _duration_s(out_probe, stream) if stream else None
+    print(
+        f"mezzanine written: {args.out} "
+        f"({stream.get('width')}x{stream.get('height')} @ {fps} fps, {duration:.1f}s)"
+        if stream
+        else f"mezzanine written: {args.out}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

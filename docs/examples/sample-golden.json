@@ -1,0 +1,82 @@
+{
+  "match_id": "2023-denmark-open-msf",
+  "video_uri": "data/mezzanine/2023-denmark-open-msf.mp4",
+  "video_sha256": "7c1e4f0a93b2d8e5f6a1c0b9d4e7f2a3581c9d0e6f4b2a7c3e8d1f0a5b6c9d2e",
+  "source_description": "yt 'AXELSEN vs ANTONSEN | Denmark Open 2023 Final' 1080p webm, downloaded 2026-08-02",
+  "broadcaster": "bwf-world-tour",
+  "discipline": "MS",
+  "first_server": "A",
+  "a_on_near_side_at_start": true,
+  "rallies": [
+    {
+      "start_frame": 3648,
+      "end_frame": 3890,
+      "hits": [
+        { "frame": 3655, "side": "near" },
+        { "frame": 3689, "side": "far" },
+        { "frame": 3721, "side": "near" },
+        { "frame": 3752, "side": "far" },
+        { "frame": 3784, "side": "near" },
+        { "frame": 3815, "side": "far" },
+        { "frame": 3849, "side": "near" }
+      ],
+      "shuttle": [
+        { "frame": 3655, "x": 612.0, "y": 574.0, "visible": true },
+        { "frame": 3656, "x": 617.5, "y": 548.0, "visible": true },
+        { "frame": 3657, "x": 623.0, "y": 521.5, "visible": true },
+        { "frame": 3658, "x": 628.0, "y": 495.5, "visible": true },
+        { "frame": 3659, "visible": false },
+        { "frame": 3660, "x": 633.5, "y": 452.0, "visible": true }
+      ]
+    },
+    {
+      "start_frame": 4560,
+      "end_frame": 4718,
+      "hits": [
+        { "frame": 4566, "side": "near" },
+        { "frame": 4601, "side": "far" },
+        { "frame": 4633, "side": "near" },
+        { "frame": 4667, "side": "far", "flags": ["hit_occluded"] }
+      ]
+    },
+    {
+      "start_frame": 5560,
+      "end_frame": 5742,
+      "hits": [
+        { "frame": 5567, "side": "far" },
+        { "frame": 5601, "side": "near" },
+        { "frame": 5636, "side": "far" },
+        { "frame": 5668, "side": "near" },
+        { "frame": 5703, "side": "far" }
+      ]
+    }
+  ],
+  "court_labels": [
+    {
+      "frame": 3600,
+      "keypoints": [
+        [140.0, 660.0], [1140.0, 660.0], [430.0, 260.0], [850.0, 260.0],
+        [215.5, 660.0], [1064.5, 660.0], [461.5, 260.0], [818.5, 260.0],
+        [640.0, 660.0], [640.0, 260.0],
+        [302.0, 507.0], [978.0, 507.0], [388.5, 391.0], [891.5, 391.0],
+        [640.0, 507.0], [640.0, 391.0]
+      ]
+    },
+    {
+      "frame": 15300,
+      "keypoints": [
+        [65.0, 688.5], [1215.0, 688.5], [398.5, 228.5], [881.5, 228.5],
+        [151.8, 688.5], [1128.2, 688.5], null, [845.3, 228.5],
+        [640.0, 688.5], [640.0, 228.5],
+        [251.3, 512.6], [1028.7, 512.6], [350.8, 379.2], [929.2, 379.2],
+        [640.0, 512.6], [640.0, 379.2]
+      ]
+    }
+  ],
+  "score_timeline": [
+    { "frame": 3400, "a": 0, "b": 0 },
+    { "frame": 3938, "a": 1, "b": 0 },
+    { "frame": 4790, "a": 1, "b": 1 },
+    { "frame": 5808, "a": 2, "b": 1 }
+  ]
+}

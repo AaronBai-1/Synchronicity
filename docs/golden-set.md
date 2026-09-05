@@ -111,48 +111,20 @@ One JSON file per match: `data/golden/<match_id>.json` (directory is gitignored
 except for the JSON labels — labels are derived data and safe to commit).
 
 The schema source of truth is **`pipeline/src/synchro_pipeline/eval/golden.py`**
-(Pydantic models; load/validate labels through it, never by hand).
+(Pydantic models; load/validate labels through it, never by hand). A complete
+schema-validated example lives at
+[docs/examples/sample-golden.json](examples/sample-golden.json), kept honest by
+`pipeline/tests/test_examples.py`; the field-by-field walkthrough is in
+[golden-file-guide.md §4](golden-file-guide.md).
 
-> NOTE (2026-08-02): `eval/golden.py` did not exist when this spec was written — it
-> is being scaffolded in parallel. The intended structure is below; if the module
-> diverges, **the module wins** — update this section to match it, not vice versa.
-
-Intended `GoldenMatch` structure:
-
-```jsonc
-{
-  "match_id": "2024_worldtour_xyz",
-  "video_sha256": "…",
-  "source_notes": "BWF World Tour 2024, 720p30 mezzanine from 1080p60 source",
-  "discipline": "MS",
-  "first_server": "A",
-  "a_on_near_side_at_start": true,
-  "rallies": [
-    {
-      "rally_id": "g1_r001",
-      "set_no": 1,
-      "start_frame": 1502,
-      "end_frame": 1893,
-      "hits": [
-        { "frame": 1531, "side": "near" },
-        { "frame": 1568, "side": "far", "flags": ["hit_occluded"] }
-      ],
-      "score_after": { "a": 1, "b": 0 },
-      "winner": "A",
-      "flags": []
-    }
-  ],
-  "court_frames": [
-    {
-      "frame": 1520,
-      "keypoints": {
-        "near_corner_left": { "x": 213.5, "y": 641.0 },
-        "far_t_point": null
-      }
-    }
-  ]
-}
-```
+Structure summary (the module wins if this drifts): top-level `match_id`,
+`video_uri`, `video_sha256` (stamped automatically), `source_description`,
+`broadcaster`, `discipline`, `first_server`, `a_on_near_side_at_start`;
+`rallies[]` with inclusive `start_frame`/`end_frame`, `hits[]`
+(`frame`, `side: near|far`, `flags[]` e.g. `hit_occluded`), optional `shuttle[]`
+points, and rally `flags[]` (`let`, `end_occluded`, `score_inferred`);
+`court_labels[]` (16 keypoints in `COURT_KEYPOINT_NAMES` order, `null` for
+occluded); `score_timeline[]` (`frame`, `a`, `b`).
 
 ## 5. Tooling
 
@@ -160,17 +132,65 @@ Labeling helpers live in `pipeline/tools/` (OpenCV-window based, offline):
 
 ```bash
 cd /path/to/Synchronicity
-uv run python pipeline/tools/label_court.py   data/mezzanine/<match>.mp4 data/golden/<match_id>.json
-uv run python pipeline/tools/label_rallies.py data/mezzanine/<match>.mp4 data/golden/<match_id>.json
+uv run python pipeline/tools/label_rallies.py \
+    --video data/mezzanine/<match_id>.mp4 --golden data/golden/<match_id>.json \
+    --match-id <match_id> --video-uri data/mezzanine/<match_id>.mp4 \
+    --audio data/runs/<match_id>/artifacts/s0_ingest/audio.wav   # enables o/O onset jumps
+uv run python pipeline/tools/label_court.py \
+    --video data/mezzanine/<match_id>.mp4 --frame <N> --golden data/golden/<match_id>.json
 ```
 
-- `label_court.py` — steps through sampled frames; click the 16 keypoints in
-  contract order, skip key for occluded ones.
-- `label_rallies.py` — scrub/step the video; mark rally start/end, hit frames with
-  near/far, and the score at each rally end.
+- `label_rallies.py` — scrub/step the video; mark rally start/end (`r`/`e`), hits
+  (`n`/`f`); with `--audio` it proposes candidate hit frames from audio onsets and
+  `o`/`O` jump between them (confirm-or-reject beats scrub-and-hunt).
+- `label_court.py` — one frame per invocation; click the 4 doubles corners, the tool
+  projects all 16 keypoints for nudging; `x` nulls an occluded point.
 
-> Same caveat as §4: the tools are being built in parallel with this spec. If flags
-> or filenames differ when you run them, trust `--help` and update this section.
+Full run-through with first-time flags: [golden-file-guide.md](golden-file-guide.md).
+
+### 5.1 Aligning a ShuttleSet match (minutes of anchoring instead of days of marking)
+
+**When it applies:** the match appears in ShuttleSet
+(`CoachAI-Projects/ShuttleSet/set/<match>/set{1,2,3}.csv`) — §1 already recommends
+picking such matches. ShuttleSet's human annotators recorded a frame number, stroke
+order and score for every hit; only their frame numbers index *their* video encode
+instead of our mezzanine. `pipeline/tools/align_shuttleset.py` bridges the two
+timelines with a human-anchored linear map and imports everything as **proposed**
+labels (logic + verified CSV schema: `synchro_pipeline/eval/shuttleset.py`).
+
+**Anchor workflow:**
+
+1. Pick 2–4 hits spread across the match — the serve of the first and last rally of
+   each set is ideal (a long lever arm tightens the fit). Read each hit's
+   `frame_num` from the CSV, find the *same contact* in the mezzanine with
+   `label_rallies` (o/O onset jumps help), and note both frame numbers.
+2. Run with `--anchors "ss:mz,ss:mz,..." --dry-run` first. The tool prints the
+   fitted scale/offset and each anchor's residual, and **refuses** if any residual
+   exceeds `--tolerance-frames` (default 5) — that means a mis-identified anchor,
+   never a knob to loosen.
+3. Choose the side mode. Default: near/far derived per-rally from ShuttleSet's
+   player-location pixels (camera-frame y — lower in frame = near; assumes the
+   mezzanine shows the same broadcast camera, which anchoring already presupposes);
+   rallies where locations are missing or ambiguous are *skipped and reported*, not
+   guessed. Fallback: `--near-serves-first` / `--far-serves-first` derives all sides
+   from serve order plus the BWF end-change rules, seeded by one fact you read off
+   the video — which end the first provided set's opening server occupies; a wrong
+   flag flips every side label, so spot-check either way.
+4. Re-run without `--dry-run` to merge into the golden JSON. Existing hand-labelled
+   rallies are never clobbered (overlapping proposals are skipped and reported), and
+   the proposed score timeline is dropped if the file already has one.
+
+**What still needs the human** (the emitted labels are proposals — the plan's
+review-before-ground-truth rule):
+
+- **Boundary refinement pass in `label_rallies`** — imported rally spans are just
+  hit-span ± 1.5 s padding; set real §3.1 start/end frames for every rally.
+- **Skipped rallies** — everything in the tool's `SKIPPED` report lines (missing
+  frame numbers, unresolvable sides, span conflicts) must be labelled by hand.
+- **Score timeline** — imported frames are "last hit + 1 s", not the observed
+  scorebug change; verify each entry (§3.4) before running the acceptance checks.
+- **Spot-check ~10 hits per match** against the video — a systematic anchor error
+  shifts every frame identically, which per-anchor residuals cannot catch.
 
 ## 6. Acceptance checklist (run before a match counts as "golden")
 

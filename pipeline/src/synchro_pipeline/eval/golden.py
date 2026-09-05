@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -80,10 +81,16 @@ class _Model(BaseModel):
 
 
 class GoldenHit(_Model):
-    """A hand-labelled racket-shuttle contact (plan S5 ground truth, frame-exact)."""
+    """A hand-labelled racket-shuttle contact (plan S5 ground truth, frame-exact).
+
+    flags (docs/golden-set.md §3.2): e.g. "hit_occluded" — contact hidden by
+    body/net/graphics; such hits are excluded from frame-exact scoring and evaluated
+    at ±3 frames only.
+    """
 
     frame: int = Field(ge=0)
     side: Side  # which physical end hit the shuttle: "near" | "far"
+    flags: list[str] = Field(default_factory=list)
 
 
 class GoldenShuttlePoint(_Model):
@@ -118,6 +125,9 @@ class GoldenRally(_Model):
     end_frame: int = Field(ge=0)
     hits: list[GoldenHit] = Field(default_factory=list)
     shuttle: list[GoldenShuttlePoint] | None = None
+    # docs/golden-set.md §3.1: e.g. "let" (replayed point, no score change),
+    # "end_occluded" (broadcast cut away before the outcome), "score_inferred".
+    flags: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _normalize_and_check(self) -> GoldenRally:
@@ -179,6 +189,11 @@ class GoldenMatch(_Model):
     video_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     source_description: str | None = None  # original filename/source before renaming
     broadcaster: str | None = None  # plan risk #2: track per-broadcaster performance
+    # docs/golden-set.md §3.4: needed by the scoring state machine to derive serve
+    # courts and the side-switch schedule (domain/scoring.py MatchState).
+    discipline: Literal["MS", "WS", "MD", "WD", "XD"] | None = None
+    first_server: Literal["A", "B"] | None = None
+    a_on_near_side_at_start: bool | None = None
     rallies: list[GoldenRally] = Field(default_factory=list)
     court_labels: list[GoldenCourtLabel] = Field(default_factory=list)
     score_timeline: list[GoldenScoreEntry] = Field(default_factory=list)
